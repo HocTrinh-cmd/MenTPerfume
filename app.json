@@ -1,4 +1,11 @@
 {
   "name": "MenTPerfume",
-  "displayName": "MenTPerfume"
+  "displayname": "MenTPerfume",
+  "version": "1.0.0",
+  "orientation": "portrait",
+  "icon": "./src/resources/images/MenT_Perfume_1.png",
+  "userInterfaceStyle": "light",
+  "assetBundlePatterns": [
+    "**/*"
+  ]
 }
