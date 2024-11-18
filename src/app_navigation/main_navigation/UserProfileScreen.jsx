@@ -19,7 +19,8 @@ const UserProfileScreen = (props) => {
   const useAppSelector = useSelector;
   const dispatch = useAppDispatch();
   const appState = useAppSelector((state) => state.app);
-
+  
+  const name = appState.user.username;
   const checkRole = () => {
     const role = Number(appState.user.role);
     if (role === 1) {
@@ -38,7 +39,7 @@ const UserProfileScreen = (props) => {
 
           <View style={styles.templatechild}>
             <Image
-              source={{ uri: 'https://i.pinimg.com/564x/11/f4/d6/11f4d67b92c81b9479051e0d5a5c7d6d.jpg' }}
+              source={appState.user.avatar ? { uri: appState.user.avatar } : {uri: 'https://i.pinimg.com/736x/cd/4b/d9/cd4bd9b0ea2807611ba3a67c331bff0b.jpg'}}
               style={styles.imageAvatar}
             />
             <View>

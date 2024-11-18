@@ -93,9 +93,9 @@ const OrderHistory = ({ navigation }) => {
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Text style={styles.backButton}>{'<'} Back</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Your orders</Text>
+      <Text style={styles.title}>Đơn hàng của bạn</Text>
       <View style={styles.tabContainer}>
-        <Text style={[styles.tabText, activeTab === 'complete' && styles.activeTab]}>Complete orders</Text>
+        <Text style={[styles.tabText, activeTab === 'complete' && styles.activeTab]}>Các đơn hàng</Text>
       </View>
       <FlatList
         data={orders}
