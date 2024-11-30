@@ -15,6 +15,8 @@ import DeliveryMethod from '../main_navigation/deliveryMethod';
 import PaymentScreen from '../main_navigation/PaymentScreen';
 import OrderHistory from '../main_navigation/OrderHistory';
 import ChangePasswordScreen from '../main_navigation/ChangePasswordScreen';
+import SuccessScreen from '../main_navigation/SuccessScreen';
+import ReviewScreen from '../main_navigation/ReviewScreen';
 
 
 const Tab = createBottomTabNavigator();
@@ -97,6 +99,8 @@ const MainNavigation = () => {
             <Stack.Screen name="DeliveryMethod" component={DeliveryMethod} />
             <Stack.Screen name="Payment" component={PaymentScreen} />
             <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+            <Stack.Screen name="SuccessScreen" component={SuccessScreen} />
+            <Stack.Screen name="ReviewScreen" component={ReviewScreen} />           
         </Stack.Navigator>
     );
 };

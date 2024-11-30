@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, AppState } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, AppState, ToastAndroid } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import AxiosInstance from '../../helper/AxiosInstance';
 import { useDispatch, useSelector } from 'react-redux';
+import { isEnabled } from 'react-native/Libraries/Performance/Systrace';
 
 const OrderHistory = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('complete');
@@ -14,18 +15,41 @@ const OrderHistory = ({ navigation }) => {
 
   const id = appState.user._id;
 
+  const navigateToReviewScreen = (item) => {
+    if (item && item.length > 0) {
+      navigation.navigate('ReviewScreen', { products: item });
+    } else {
+      console.log('Không có sản phẩm để đánh giá');
+      ToastAndroid.show('Không có sản phẩm để đánh giá', ToastAndroid.SHORT);
+    }
+  };
+  
 
   const fetchProduct = async () => {
     try {
       const response = await AxiosInstance().get(`/carts/user/${id}`);
       if (response.status) {
         setorders(response.data);
-        console.log(response)
       }
     } catch (error) {
       console.log(error);
     }
   }
+
+  const cancelOrder = async (orderId) => {
+    try {
+      const response = await AxiosInstance().put(`/carts/status/${orderId}`, { status: "cancelled" });
+      if (response.data.status) {
+        ToastAndroid.show('Hủy đơn hàng thành công', ToastAndroid.SHORT);
+        fetchProduct();
+      } else {
+        ToastAndroid.show('Hủy đơn hàng không thành công', ToastAndroid.SHORT);
+      }
+    } catch (error) {
+      console.log(error);
+      ToastAndroid.show('Có lỗi xảy ra khi hủy đơn hàng', ToastAndroid.SHORT);
+    }
+  };
 
   useEffect(() => {
     fetchProduct();
@@ -46,14 +70,21 @@ const OrderHistory = ({ navigation }) => {
         <Text
           style={[
             styles.statusBadge,
-            styles[item.status === 'delivered' ? 'completed' : item.status],
+            styles[item.status],
           ]}
         >
-          {item.status === 'delivered'
-            ? 'Completed'
-            : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+          {item.status === 'pending'
+          ? 'Đang chờ'
+          : item.status === 'processing'
+          ? 'Đang xử lý'
+          : item.status === 'shipped'
+          ? 'Đã gửi'
+          : item.status === 'delivered'
+          ? 'Đã giao hàng'
+          : item.status === 'cancelled'
+          ? 'Đã hủy'
+          : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
         </Text>
-
       </View>
 
       {item.products.map((product, index) => (
@@ -74,7 +105,6 @@ const OrderHistory = ({ navigation }) => {
         </View>
       ))}
 
-
       <View style={styles.totalContainer}>
         <Text style={styles.totalText}>Tổng cộng:</Text>
         <Text style={styles.totalAmount}>
@@ -82,9 +112,34 @@ const OrderHistory = ({ navigation }) => {
         </Text>
       </View>
 
+      <Text style={styles.paymentMethod}>
+        Phương thức thanh toán: {item.paymentMethod === 'pay_online' ? 'Thanh toán trực tuyến' : 'Thanh toán khi nhận hàng'}
+      </Text>
 
+      <Text style={styles.paymentStatus}>
+        Trạng thái thanh toán: {item.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+      </Text>
+
+      {/* Hiển thị nút "Hủy đơn hàng" hoặc "Đánh giá sản phẩm" */}
+      {item.status === 'pending' ? (
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={() => cancelOrder(item._id)}
+        >
+          <Text style={styles.cancelButtonText}>Hủy đơn hàng</Text>
+        </TouchableOpacity>
+      ) : item.status === 'delivered' ? (
+        <TouchableOpacity
+          style={styles.reviewButton}
+          onPress={() => navigateToReviewScreen(item.products)}
+        >
+          <Text style={styles.cancelButtonText}>Đánh giá sản phẩm</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
+
+
 
 
 
@@ -93,7 +148,7 @@ const OrderHistory = ({ navigation }) => {
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Text style={styles.backButton}>{'<'} Back</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Đơn hàng của bạn</Text>
+      <Text style={styles.title}>Lịch sử đơn hàng của bạn</Text>
       <View style={styles.tabContainer}>
         <Text style={[styles.tabText, activeTab === 'complete' && styles.activeTab]}>Các đơn hàng</Text>
       </View>
@@ -180,8 +235,14 @@ const styles = StyleSheet.create({
   pending: {
     backgroundColor: '#F59E0B',
   },
+  processing: {
+    backgroundColor: '#EF7D00',
+  },
+  shipped: {
+    backgroundColor: '#1D4ED8',
+  },
   delivered: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#10B981', 
   },
   cancelled: {
     backgroundColor: '#EF4444',
@@ -235,15 +296,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#EF4444',
   },
-  completed: {
-    backgroundColor: '#28A745', // Màu xanh thành công
-    color: '#FFF',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  cancelButton: {
+    backgroundColor: '#FF3B30', // Màu đỏ
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+    width: '70%',
+    alignSelf:'center'
   },
-
+  reviewButton: {
+    backgroundColor: '#00BB00', // Màu xanh 00BB00
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+    width: '70%',
+    alignSelf:'center'
+  },
+  cancelButtonText: {
+    color: '#FFFFF', // Màu trắng FFFFF
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  paymentMethod: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  paymentStatus: {
+    fontSize: 14,
+    color: '#10B981',
+    marginTop: 5,
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#D1D5DB', // Màu xám nhạt
+  },
 });

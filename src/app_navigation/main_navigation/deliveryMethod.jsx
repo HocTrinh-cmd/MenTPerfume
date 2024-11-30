@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Image, ScrollView, FlatList } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ItemDelivery from '../../commons/OneItem/ItemDelivery';
 import { useDispatch, useSelector } from 'react-redux'
 import AxiosInstance from '../../helper/AxiosInstance'
 import { clearCart } from '../../redux/Reducer'
+import { Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 
 const DeliveryMethod = (props) => {
@@ -15,12 +18,12 @@ const DeliveryMethod = (props) => {
   const useAppSelector = useSelector;
   const appState = useAppSelector((state) => state.app);
 
-
-
-
   const [payment, setPayment] = useState("payOnArrival");
   const [address, setAddress] = useState("137 Teaticket Teaticket Hwy, East Falmouth MA, 2536");
   const [phone, setPhone] = useState("+234 901039271");
+  const [orderId, setOrderId] = useState('');
+
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const deliveryFee = appState.feedelivery;
   const discount = 0;
@@ -29,48 +32,166 @@ const DeliveryMethod = (props) => {
     const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
     return subtotal + deliveryFee - discount;
   };
-  
+
   const totalAmount = calculateTotal(appState.cart, deliveryFee, discount);
-  
+
+  // const checkout = async () => {
+  //   if (appState.cart.length === 0) {
+  //     // Giỏ hàng đang trống, không thực hiện thanh toán
+  //     alert('Giỏ hàng đang trống');
+  //     return;
+  //   }
+  //   if (appState.cart.length === 0) {
+  //     // Giỏ hàng đang trống, không thực hiện thanh toán
+  //     alert('Giỏ hàng đang trống');
+  //     return;
+  //   }
+  //   try {
+  //     const body = {
+  //       user: {
+  //         _id: appState.user._id,
+  //         name: appState.user.username
+  //       },
+  //       products: appState.cart.map((item) => {
+  //         return {
+  //           _id: item._id,
+  //           quantity: item.quantity
+  //         }
+  //       })
+  //     }
+  //     const result = await AxiosInstance().post('/carts/add', body);
+  //     if (result.status == true) {
+  //       // thông báo thành công
+  //       // quay về màn hình chính
+  //       navigation.navigate('Home');
+  //       // xóa giỏ hàng
+  //       dispatch(clearCart());
+  //     } else {
+  //       alert('Lỗi thanh toán');
+  //     }
+  //     console.log(body);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
+
+  const handleDeepLink = async (url) => {
+    if (!url) return;
+
+    try {
+      // Get stored orderId
+      const storedOrderId = await AsyncStorage.getItem('currentOrderId');
+      if (!storedOrderId) {
+        console.log('No stored orderId found');
+        return;
+      }
+
+      setIsProcessingPayment(true);
+
+      const response = await AxiosInstance().post('/payments/transaction-status', {
+        orderId: storedOrderId
+      });
+
+      if (response.message === "Thành công.") {
+        const updateResponse = await AxiosInstance().put(`/carts/update/${storedOrderId}`, {
+          paymentStatus: "paid",
+        });
+
+        if (!updateResponse.data.status) {
+          console.error("Cập nhật trạng thái thất bại:", updateResponse.data.error);
+          Alert.alert('Lỗi', 'Không thể cập nhật trạng thái đơn hàng.');
+          return;
+        }
+        // Clear the stored orderId
+        await AsyncStorage.removeItem('currentOrderId');
+        // Clear cart and navigate to success
+        dispatch(clearCart());
+        navigation.navigate('SuccessScreen', {
+          message: 'Thanh toán thành công!',
+        });
+
+
+
+      } else {
+        Alert.alert('Thanh toán thất bại', 'Vui lòng thử lại sau.');
+      }
+    } catch (error) {
+      console.error('Error handling deep link:', error);
+      Alert.alert('Lỗi', 'Không thể xác minh trạng thái thanh toán.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  useEffect(() => {
+    // Handle initial URL (app opened via deep link)
+    Linking.getInitialURL().then(handleDeepLink);
+
+    // Handle deep link when app is already running
+    const linkingSubscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      linkingSubscription.remove();
+    };
+  }, []);
+
   const checkout = async () => {
     if (appState.cart.length === 0) {
-      // Giỏ hàng đang trống, không thực hiện thanh toán
-      alert('Giỏ hàng đang trống');
+      Alert.alert('Giỏ hàng đang trống');
       return;
     }
-    if (appState.cart.length === 0) {
-      // Giỏ hàng đang trống, không thực hiện thanh toán
-      alert('Giỏ hàng đang trống');
-      return;
-    }
+
     try {
-      const body = {
+      // Create order
+      const orderBody = {
         user: {
           _id: appState.user._id,
-          name: appState.user.username
+          name: appState.user.username,
         },
-        products: appState.cart.map((item) => {
-          return {
-            _id: item._id,
-            quantity: item.quantity
-          }
-        })
+        products: appState.cart.map((item) => ({
+          _id: item._id,
+          quantity: item.quantity,
+        })),
+      };
+
+      const orderResponse = await AxiosInstance().post('/carts/add', orderBody);
+
+      if (orderResponse.status !== true) {
+        Alert.alert('Không thể tạo đơn hàng');
+        return;
       }
-      const result = await AxiosInstance().post('/carts/add', body);
-      if (result.status == true) {
-        // thông báo thành công
-        // quay về màn hình chính
-        navigation.navigate('Home');
-        // xóa giỏ hàng
-        dispatch(clearCart());
+
+      const orderId = orderResponse.data.cart._id;
+
+      // Store orderId for later verification
+      await AsyncStorage.setItem('currentOrderId', orderId);
+
+      // Create MoMo payment
+      const momoBody = {
+        orderId: orderId,
+        amount: totalAmount,
+        orderInfo: 'Thanh toán đơn hàng',
+        redirectUrl: 'MenT://momo',
+      };
+
+      const paymentResponse = await AxiosInstance().post('/payments/paymentMomo', momoBody);
+
+      if (paymentResponse.deeplink) {
+        await Linking.openURL(paymentResponse.deeplink);
       } else {
-        alert('Lỗi thanh toán');
+        Alert.alert('Lỗi', 'Không thể tạo giao dịch thanh toán.');
+        await AsyncStorage.removeItem('currentOrderId');
       }
-      console.log(body);
     } catch (error) {
-      console.log(error);
+      console.error('Payment error:', error);
+      Alert.alert('Lỗi thanh toán', 'Vui lòng thử lại sau.');
+      await AsyncStorage.removeItem('currentOrderId');
     }
-  }
+  };
+
+
 
   return (
     <View style={styles.container}>
@@ -86,10 +207,10 @@ const DeliveryMethod = (props) => {
             <Text style={styles.infoText}>{appState.user.username}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoText}>{phone}</Text>
+            <Text style={styles.infoText}>{appState.user.phonenumber}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoText}>{address}</Text>
+            <Text style={styles.infoText}>{appState.user.address}</Text>
           </View>
         </View>
         <View style={{ width: '100%', backgroundColor: 'black', margin: 3 }}>

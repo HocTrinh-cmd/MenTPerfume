@@ -26,11 +26,11 @@ const SearchScreen = (props) => {
                 setProducts(response.data);
             } else {
                 console.log("Lấy data từ API thất bại!");
-                setProducts([]); // Đảm bảo mảng rỗng khi thất bại
+                setProducts([]);
             }
         } catch (error) {
             console.log('Get products error: ', error.message || error);
-            setProducts([]); // Đảm bảo mảng rỗng khi có lỗi
+            setProducts([]); 
         }
     };
 
@@ -54,6 +54,7 @@ const SearchScreen = (props) => {
                     >
                         <Image
                             source={require('../../resources/images/search.png')}
+                            style={styles.searchIcon}
                         />
                     </TouchableOpacity>
                 </View>
@@ -81,27 +82,38 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 24,
         flex: 1,
+        backgroundColor: '#f9f9f9', 
     },
     textinput: {
-        width: '90%',
+        flex: 1,
         fontSize: 16,
-        color: '#221F1F',
+        color: '#333',
+        paddingHorizontal: 10,
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        height: 42,
     },
     SearchStyle: {
         width: '100%',
-        height: 33,
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         marginTop: 20,
         marginBottom: 20,
     },
     SearchChild: {
-        width: 279,
-        height: 42,
-        borderBottomWidth: 1,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        width: '100%',
+        maxWidth: 320, 
+        height: 50,
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        paddingHorizontal: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     noProductsContainer: {
         flex: 1,
@@ -111,5 +123,10 @@ const styles = StyleSheet.create({
     noProductsText: {
         fontSize: 16,
         color: '#888',
+    },
+    searchIcon: {
+        width: 24,
+        height: 24,
+        tintColor: '#555', 
     },
 });

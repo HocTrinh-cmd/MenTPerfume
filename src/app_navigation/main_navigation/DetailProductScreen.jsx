@@ -60,21 +60,22 @@ const DetailProductScreen = (props) => {
     const fetchFeedback = async () => {
         try {
             setRefreshing(true);
-            const response = await AxiosInstance().get(`/feedbacks/getfeedbacks/${id}`);
+            const response = await AxiosInstance().get(`/feedbacks/getfeedback/${id}`);
             if (response.status) {
-                const feedbackList = response.feedbacks;
+                const feedbackList = response.data.feedbacks;
                 setFeedbacks(feedbackList);
+                
 
                 setTotalRatings(feedbackList.length);
 
                 const totalRatingValue = feedbackList.reduce((sum, feedback) => sum + feedback.rating, 0);
                 const average = feedbackList.length > 0 ? totalRatingValue / feedbackList.length : 0;
-                setAverageRating(average.toFixed(1)); // Làm tròn đến 1 chữ số thập phân
+                setAverageRating(average.toFixed(1)); 
 
             }
             setRefreshing(false);
         } catch (error) {
-            console.log(error);
+            console.log("Hiện không có đánh giá cho sản phẩm", error);
             setRefreshing(false);
         }
     }
@@ -121,13 +122,14 @@ const DetailProductScreen = (props) => {
                     <View style={styles.Brandstyle}>
                         <Text style={styles.brand}>{product.category ? product.category.category_brand : 'Đang cập nhật'}</Text>
                         <View style={styles.ChildBrandstyle}>
-                            <Text style={styles.rating}>⭐ 4+</Text>
+                            <Text style={styles.rating}>⭐ {averageRating}+</Text>
                             <Text style={styles.clock}>⏰ 5-10hour</Text>
                         </View>
                     </View>
 
                     <View style={styles.productInfo}>
                         <Text style={styles.productName}>{product.name}</Text>
+                        <Text style={styles.productQuantity}>Số lượng tồn kho: {product.quantity ? product.quantity : 'Đang cập nhật'}</Text>
                         <Text style={styles.productPrice}>{product.price ? product.price.toLocaleString('vi-VN') : 'Đang cập nhật'} VND</Text>
                     </View>
                 </View>
@@ -236,13 +238,18 @@ const styles = StyleSheet.create({
         borderRadius: 15
     },
     productName: {
-        height: 70,
+        height: 60,
         fontSize: 20,
         color: '#3D3D3D',
         fontFamily: 'DMSans-Regular'
     },
     productPrice: {
         fontSize: 20,
+        color: '#CC0033',
+        fontFamily: 'DMSans-Regular'
+    },
+    productQuantity: {
+        fontSize: 16,
         color: '#3D3D3D',
         fontFamily: 'DMSans-Regular'
     },

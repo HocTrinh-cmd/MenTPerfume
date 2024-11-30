@@ -23,9 +23,9 @@ const UserProfileScreen = (props) => {
   const name = appState.user.username;
   const checkRole = () => {
     const role = Number(appState.user.role);
-    if (role === 1) {
+    if (role === 'Customer') {
       return 'Thành viên';
-    } else if (role === 2) {
+    } else if (role === 'Admin') {
       return 'Admin';
     } else {
       return null;
